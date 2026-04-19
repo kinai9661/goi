@@ -1,0 +1,95 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  password      String
+  role          Role      @default(USER)
+  avatar        String?
+  dailyQuota    Int       @default(50)
+  usedQuota     Int       @default(0)
+  quotaResetAt  DateTime  @default(now())
+  isBanned      Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  generations Generation[]
+  activities  Activity[]
+
+  @@map("users")
+}
+
+model Generation {
+  id            String          @id @default(cuid())
+  userId        String
+  type          GenerationType
+  prompt        String
+  revisedPrompt String?
+  model         String
+  resolution    String?
+  aspectRatio   String?
+  duration      Int?
+  status        GenerationStatus @default(PENDING)
+  resultUrl     String?
+  sourceUrl     String?
+  errorMsg      String?
+  startedAt     DateTime?
+  completedAt   DateTime?
+  createdAt     DateTime        @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("generations")
+}
+
+model Activity {
+  id        String      @id @default(cuid())
+  userId    String
+  action    String
+  details   String?
+  ip        String?
+  createdAt DateTime    @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("activities")
+}
+
+model Setting {
+  id    String @id @default(cuid())
+  key   String @unique
+  value String
+  @@map("settings")
+}
+
+enum Role {
+  ADMIN
+  USER
+}
+
+enum GenerationType {
+  TEXT_TO_IMAGE
+  IMAGE_TO_IMAGE
+  TEXT_TO_VIDEO
+  IMAGE_TO_VIDEO
+}
+
+enum GenerationStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
